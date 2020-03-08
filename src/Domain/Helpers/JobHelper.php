@@ -5,6 +5,7 @@ namespace PhpBundle\Queue\Domain\Helpers;
 use PhpLab\Core\Domain\Helpers\EntityHelper;
 use PhpBundle\Queue\Domain\Entities\JobEntity;
 use PhpBundle\Queue\Domain\Interfaces\JobInterface;
+use PhpLab\Core\Helpers\DiHelper;
 use Psr\Container\ContainerInterface;
 
 class JobHelper
