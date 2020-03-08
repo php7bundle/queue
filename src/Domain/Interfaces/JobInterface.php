@@ -2,7 +2,7 @@
 
 namespace PhpBundle\Queue\Domain\Interfaces;
 
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Psr\Container\ContainerInterface;
 
 interface JobInterface
 {

@@ -5,7 +5,7 @@ namespace PhpBundle\Queue\Domain\Helpers;
 use PhpLab\Core\Domain\Helpers\EntityHelper;
 use PhpBundle\Queue\Domain\Entities\JobEntity;
 use PhpBundle\Queue\Domain\Interfaces\JobInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Psr\Container\ContainerInterface;
 
 class JobHelper
 {
@@ -14,11 +14,12 @@ class JobHelper
     {
         $jobClass = $jobEntity->getClass();
         /** @var JobInterface $jobInstance */
-        $jobInstance = new $jobClass;
+        $jobInstance = DiHelper::make($jobClass, $container);
+        //$jobInstance = new $jobClass;
         $data = $jobEntity->getJob();
-        if ($container) {
+        /*if ($container) {
             $data['container'] = $container;
-        }
+        }*/
         EntityHelper::setAttributes($jobInstance, $data);
         return $jobInstance;
     }
