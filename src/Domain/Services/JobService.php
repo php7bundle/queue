@@ -11,6 +11,7 @@ use PhpBundle\Queue\Domain\Helpers\JobHelper;
 use PhpBundle\Queue\Domain\Interfaces\JobInterface;
 use PhpBundle\Queue\Domain\Interfaces\JobRepositoryInterface;
 use PhpBundle\Queue\Domain\Interfaces\JobServiceInterface;
+use PhpLab\Core\Domain\Libs\Query;
 use Psr\Container\ContainerInterface;
 
 class JobService extends BaseCrudService implements JobServiceInterface
@@ -42,9 +43,15 @@ class JobService extends BaseCrudService implements JobServiceInterface
         return $jobEntity;
     }
 
+
+
     public function runAll(string $channel = null): int
     {
-        $jobCollection = $this->getRepository()->allForRun();
+        $query = new Query;
+        if($channel) {
+            $query->where('channel', $channel);
+        }
+        $jobCollection = $this->getRepository()->allForRun($query);
         foreach ($jobCollection as $jobEntity) {
             $job = JobHelper::forgeJob($jobEntity, $this->container);
             $job->run();

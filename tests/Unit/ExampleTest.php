@@ -17,43 +17,35 @@ use Psr\Container\ContainerInterface;
 final class ExampleTest extends BaseTest
 {
 
+    /** @var ContainerInterface */
+    private $container;
+
     private function makeContainer(): ContainerInterface
     {
         $container = Container::getInstance();
-
-        $container->singleton(Manager::class, function (ContainerInterface $container) {
-            $manager = new \PhpLab\Eloquent\Db\Helpers\Manager;
-            return $manager;
-        });
-
-        $container->singleton(JobRepositoryInterface::class, function (ContainerInterface $container) {
-            $manager = new JobRepository($container->get(Manager::class));
-            return $manager;
-        });
-
-        $container->singleton(JobServiceInterface::class, function (ContainerInterface $container) {
-            $jobService = new JobService($container->get(JobRepositoryInterface::class), $container);
-            return $jobService;
-        });
-
+        $container->bind(Manager::class, \PhpLab\Eloquent\Db\Helpers\Manager::class);
+        $container->bind(JobRepositoryInterface::class, JobRepository::class);
+        $container->bind(JobServiceInterface::class, JobService::class);
+        $container->bind(ContainerInterface::class, Container::class);
         return $container;
     }
 
-    private function clearQueue(ContainerInterface $container)
+    private function clearQueue()
     {
-        $jobRepository = $container->get(JobRepositoryInterface::class);
+        $jobRepository = $this->container->get(JobRepositoryInterface::class);
         $jobRepository->deleteByCondition([]);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->container = $this->makeContainer();
+        $this->clearQueue();
     }
 
     public function testExample()
     {
-
-        $container = $this->makeContainer();
-        $jobService = $container->get(JobServiceInterface::class);
-        $this->clearQueue($container);
-
-        $jobCollection = $jobService->all();
-        $this->assertEmpty($jobCollection->all());
+        $jobService = $this->container->get(JobServiceInterface::class);
 
         $job = new ExampleJob;
         $job->messageText = 'qwerty';
@@ -72,8 +64,10 @@ final class ExampleTest extends BaseTest
             ],
         ], EntityHelper::collectionToArray($jobCollection));
 
+        $jobService->runAll('sms');
+
         try {
-            $jobService->runAll();
+            $jobService->runAll('email');
             $this->assertTrue(false);
         } catch (AlreadyExistsException $e) {
             $this->assertEquals('qwerty', $e->getMessage());
