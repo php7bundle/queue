@@ -23,10 +23,10 @@ final class ExampleTest extends BaseTest
     private function makeContainer(): ContainerInterface
     {
         $container = Container::getInstance();
-        $container->bind(Manager::class, \PhpLab\Eloquent\Db\Helpers\Manager::class);
-        $container->bind(JobRepositoryInterface::class, JobRepository::class);
-        $container->bind(JobServiceInterface::class, JobService::class);
-        $container->bind(ContainerInterface::class, Container::class);
+        $container->bind(Manager::class, \PhpLab\Eloquent\Db\Helpers\Manager::class, true);
+        $container->bind(JobRepositoryInterface::class, JobRepository::class, true);
+        $container->bind(JobServiceInterface::class, JobService::class, true);
+        $container->bind(ContainerInterface::class, Container::class, true);
         return $container;
     }
 
