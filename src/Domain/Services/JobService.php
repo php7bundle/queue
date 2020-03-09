@@ -16,6 +16,10 @@ use PhpLab\Core\Domain\Helpers\ValidationHelper;
 use PhpLab\Core\Helpers\DiHelper;
 use Psr\Container\ContainerInterface;
 
+/**
+ * @method JobEntity createEntity(array $attributes = [])
+ * @method JobRepositoryInterface getRepository()
+ */
 class JobService extends BaseService implements JobServiceInterface
 {
 
@@ -27,16 +31,11 @@ class JobService extends BaseService implements JobServiceInterface
         $this->container = $container;
     }
 
-    public function getRepository(): JobRepositoryInterface
-    {
-        return parent::getRepository();
-    }
-
-    public function push(JobInterface $job, int $priority = PriorityEnum::NORMAL)
+    public function push(JobInterface $job, int $priority = PriorityEnum::NORMAL, string $channel = null)
     {
         //$isAvailable = $this->beforeMethod([$this, 'push']);
-        $jobEntity = new JobEntity;
-        $jobEntity->setChannel('email');
+        $jobEntity = $this->createEntity();
+        $jobEntity->setChannel($channel);
         $jobEntity->setJob($job);
         $jobEntity->setPriority($priority);
         //$jobEntity->setDelay();
@@ -59,18 +58,29 @@ class JobService extends BaseService implements JobServiceInterface
         $jobCollection = $this->getRepository()->all($query);
         $totalEntity = new TotalEntity;
         foreach ($jobCollection as $jobEntity) {
-            $job = $this->getJobInstance($jobEntity, $this->container);
-            $jobEntity->incrementAttempt();
-            try {
-                $job->run();
-                $jobEntity->setCompleted();
+            $isSuccess = $this->runJob($jobEntity);
+            if ($isSuccess) {
                 $totalEntity->incrementSuccess($jobEntity);
-            } catch (\Throwable $e) {
+            } else {
                 $totalEntity->incrementFail($jobEntity);
             }
-            $this->getRepository()->update($jobEntity);
         }
         return $totalEntity;
+    }
+
+    private function runJob(JobEntity $jobEntity)
+    {
+        $jobInstance = $this->getJobInstance($jobEntity, $this->container);
+        $jobEntity->incrementAttempt();
+        $isSuccess = false;
+        try {
+            $jobInstance->run();
+            $jobEntity->setCompleted();
+            $isSuccess = true;
+        } catch (\Throwable $e) {
+        }
+        $this->getRepository()->update($jobEntity);
+        return $isSuccess;
     }
 
     private function getJobInstance(JobEntity $jobEntity, ContainerInterface $container): JobInterface

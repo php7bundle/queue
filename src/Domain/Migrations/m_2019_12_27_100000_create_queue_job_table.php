@@ -16,7 +16,7 @@ class m_2019_12_27_100000_create_queue_job_table extends BaseCreateTableMigratio
     public function tableSchema()
     {
         return function (Blueprint $table) {
-            $table->integer('id')->autoIncrement();
+            $table->integer('id')->autoIncrement()->comment('Идентификатор');
             $table->string('channel')->comment('Имя канала потока обработки');
             $table->string('class')->comment('Имя класса');
             $table->text('data')->comment('Данные для задачи');

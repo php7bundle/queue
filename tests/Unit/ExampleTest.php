@@ -52,7 +52,7 @@ final class ExampleTest extends BaseTest
 
         $job = new ExampleJob;
         $job->messageText = 'qwerty123';
-        $pushResult = $jobService->push($job);
+        $pushResult = $jobService->push($job, PriorityEnum::NORMAL, self::CHANNEL_EMAIL);
 
         $jobCollection = $jobService->newTasks();
 
@@ -83,7 +83,7 @@ final class ExampleTest extends BaseTest
 
         $job = new ExampleJob;
         $job->messageText = 'qwerty';
-        $pushResult = $jobService->push($job);
+        $pushResult = $jobService->push($job, PriorityEnum::NORMAL, self::CHANNEL_EMAIL);
 
         $jobCollection = $jobService->newTasks();
         $this->assertArraySubset([
