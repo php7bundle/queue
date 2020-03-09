@@ -4,8 +4,9 @@ namespace PhpBundle\Queue\Tests\Unit;
 
 use Illuminate\Container\Container;
 use Illuminate\Database\Capsule\Manager;
-use PhpBundle\Queue\Domain\Interfaces\JobRepositoryInterface;
-use PhpBundle\Queue\Domain\Interfaces\JobServiceInterface;
+use PhpBundle\Queue\Domain\Enums\PriorityEnum;
+use PhpBundle\Queue\Domain\Interfaces\Repositories\JobRepositoryInterface;
+use PhpBundle\Queue\Domain\Interfaces\Services\JobServiceInterface;
 use PhpBundle\Queue\Domain\Repositories\Eloquent\JobRepository;
 use PhpBundle\Queue\Domain\Services\JobService;
 use PhpBundle\Queue\Tests\Libs\Jobs\ExampleJob;
@@ -16,6 +17,9 @@ use Psr\Container\ContainerInterface;
 
 final class ExampleTest extends BaseTest
 {
+
+    const CHANNEL_EMAIL = 'email';
+    const CHANNEL_SMS = 'sms';
 
     /** @var ContainerInterface */
     private $container;
@@ -43,7 +47,38 @@ final class ExampleTest extends BaseTest
         $this->clearQueue();
     }
 
-    public function testExample()
+    public function testRunAllSuccess()
+    {
+        $jobService = $this->container->get(JobServiceInterface::class);
+
+        $job = new ExampleJob;
+        $job->messageText = 'qwerty123';
+        $pushResult = $jobService->push($job);
+
+        $jobCollection = $jobService->newTasks();
+
+        $this->assertArraySubset([
+            [
+                'channel' => self::CHANNEL_EMAIL,
+                'class' => ExampleJob::class,
+                //'data' => 'YToxOntzOjExOiJtZXNzYWdlVGV4dCI7czo5OiJxd2VydHkxMjMiO30=',
+                'job' => [
+                    'messageText' => 'qwerty123'
+                ],
+                'priority' => PriorityEnum::NORMAL,
+                'delay' => 0,
+                'attempt' => 0,
+            ],
+        ], EntityHelper::collectionToArray($jobCollection));
+
+        $totalEntity = $jobService->runAll(self::CHANNEL_SMS);
+        $this->assertEquals(0, $totalEntity->getSuccess());
+
+        $totalEntity = $jobService->runAll(self::CHANNEL_EMAIL);
+        $this->assertEquals(1, $totalEntity->getSuccess());
+    }
+
+    public function testRunAllFail()
     {
         $jobService = $this->container->get(JobServiceInterface::class);
 
@@ -51,27 +86,42 @@ final class ExampleTest extends BaseTest
         $job->messageText = 'qwerty';
         $pushResult = $jobService->push($job);
 
-        $jobCollection = $jobService->all();
-
+        $jobCollection = $jobService->newTasks();
         $this->assertArraySubset([
             [
-                'channel' => 'email',
-                'class' => 'PhpBundle\\Queue\\Tests\\Libs\\Jobs\\ExampleJob',
-                'data' => 'YToxOntzOjExOiJtZXNzYWdlVGV4dCI7czo2OiJxd2VydHkiO30=',
-                'priority' => 200,
+                'channel' => self::CHANNEL_EMAIL,
+                'class' => ExampleJob::class,
+                //'data' => 'YToxOntzOjExOiJtZXNzYWdlVGV4dCI7czo2OiJxd2VydHkiO30=',
+                'job' => [
+                    'messageText' => 'qwerty'
+                ],
+                'priority' => PriorityEnum::NORMAL,
                 'delay' => 0,
                 'attempt' => 0,
             ],
         ], EntityHelper::collectionToArray($jobCollection));
 
-        $jobService->runAll('sms');
+        $totalEntity = $jobService->runAll(self::CHANNEL_SMS);
+        $this->assertEquals(0, $totalEntity->getSuccess());
 
-        try {
-            $jobService->runAll('email');
-            $this->assertTrue(false);
-        } catch (AlreadyExistsException $e) {
-            $this->assertEquals('qwerty', $e->getMessage());
-        }
+        $totalEntity = $jobService->runAll(self::CHANNEL_EMAIL);
+        $this->assertEquals(0, $totalEntity->getSuccess());
+
+        $jobCollection = $jobService->newTasks();
+
+        $this->assertArraySubset([
+            [
+                'channel' => self::CHANNEL_EMAIL,
+                'class' => ExampleJob::class,
+                //'data' => 'YToxOntzOjExOiJtZXNzYWdlVGV4dCI7czo2OiJxd2VydHkiO30=',
+                'job' => [
+                    'messageText' => 'qwerty'
+                ],
+                'priority' => PriorityEnum::NORMAL,
+                'delay' => 0,
+                'attempt' => 1,
+            ],
+        ], EntityHelper::collectionToArray($jobCollection));
     }
 
 }

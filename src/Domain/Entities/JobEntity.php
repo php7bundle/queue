@@ -3,11 +3,12 @@
 namespace PhpBundle\Queue\Domain\Entities;
 
 use DateTime;
-use PhpLab\Core\Domain\Interfaces\Entity\EntityIdInterface;
-use PhpLab\Core\Domain\Interfaces\Entity\ValidateEntityInterface;
 use PhpBundle\Queue\Domain\Enums\PriorityEnum;
 use PhpBundle\Queue\Domain\Helpers\JobHelper;
 use PhpBundle\Queue\Domain\Interfaces\JobInterface;
+use PhpLab\Core\Domain\Interfaces\Entity\EntityIdInterface;
+use PhpLab\Core\Domain\Interfaces\Entity\ValidateEntityInterface;
+use PhpLab\Core\Enums\StatusEnum;
 
 class JobEntity implements ValidateEntityInterface, EntityIdInterface
 {
@@ -16,9 +17,11 @@ class JobEntity implements ValidateEntityInterface, EntityIdInterface
     private $channel;
     private $class;
     private $data;
+    private $job;
     private $priority = PriorityEnum::NORMAL;
     private $delay = 0;
     private $attempt = 0;
+    private $status = StatusEnum::ENABLE;
     private $pushedAt;
     private $reservedAt;
     private $doneAt;
@@ -63,7 +66,7 @@ class JobEntity implements ValidateEntityInterface, EntityIdInterface
         $this->class = $class;
     }
 
-    public function getJob()
+    public function getJob(): array
     {
         return JobHelper::decode($this->getData());
     }
@@ -113,6 +116,28 @@ class JobEntity implements ValidateEntityInterface, EntityIdInterface
     public function setAttempt($attempt): void
     {
         $this->attempt = $attempt;
+    }
+
+    public function incrementAttempt($step = 1): void
+    {
+        $this->attempt = $this->attempt + $step;
+    }
+
+    public function setCompleted(): void
+    {
+        $this->setReservedAt();
+        $this->setDoneAt();
+        $this->setStatus(StatusEnum::COMPLETED);
+    }
+
+    public function getStatus(): int
+    {
+        return $this->status;
+    }
+
+    public function setStatus(int $status): void
+    {
+        $this->status = $status;
     }
 
     public function getPushedAt(): DateTime

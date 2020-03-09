@@ -2,7 +2,7 @@
 
 namespace PhpBundle\Queue\Symfony\Commands;
 
-use PhpBundle\Queue\Domain\Interfaces\JobServiceInterface;
+use PhpBundle\Queue\Domain\Interfaces\Services\JobServiceInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -40,8 +40,8 @@ class RunCommand extends Command
         $output->writeln('');
 
         $total = $this->jobService->runAll($channel);
-        if ($total) {
-            $output->writeln('<fg=green>Complete ' . $total . ' jobs!</>');
+        if ($total->getSuccess()) {
+            $output->writeln('<fg=green>Complete ' . $total->getSuccess() . ' jobs!</>');
         } else {
             $output->writeln('<fg=magenta>Jobs empty!</>');
         }

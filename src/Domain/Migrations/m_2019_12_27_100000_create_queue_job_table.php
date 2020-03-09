@@ -3,6 +3,7 @@
 namespace Migrations;
 
 use Illuminate\Database\Schema\Blueprint;
+use PhpLab\Core\Enums\StatusEnum;
 use PhpLab\Eloquent\Migration\Base\BaseCreateTableMigration;
 use PhpBundle\Queue\Domain\Enums\PriorityEnum;
 
@@ -22,6 +23,7 @@ class m_2019_12_27_100000_create_queue_job_table extends BaseCreateTableMigratio
             $table->integer('priority')->default(PriorityEnum::NORMAL)->comment('Приоритет выполнения');
             $table->integer('delay')->default(0)->comment('Допустимая задержка');
             $table->integer('attempt')->default(0)->comment('Номер попытки выполнения');
+            $table->smallInteger('status')->default(StatusEnum::ENABLE)->comment('Статус');
             $table->dateTime('pushed_at')->comment('Время создания');
             $table->dateTime('reserved_at')->nullable()->comment('Время резервирования задачи для выполнения');
             $table->dateTime('done_at')->nullable()->comment('Время завершения выполнения задачи');

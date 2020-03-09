@@ -2,19 +2,21 @@
 
 namespace PhpBundle\Queue\Domain\Services;
 
-use PhpLab\Core\Domain\Helpers\EntityHelper;
-use PhpLab\Core\Domain\Base\BaseCrudService;
-use PhpLab\Core\Domain\Helpers\ValidationHelper;
+use Illuminate\Support\Collection;
 use PhpBundle\Queue\Domain\Entities\JobEntity;
+use PhpBundle\Queue\Domain\Entities\TotalEntity;
 use PhpBundle\Queue\Domain\Enums\PriorityEnum;
-use PhpBundle\Queue\Domain\Helpers\JobHelper;
 use PhpBundle\Queue\Domain\Interfaces\JobInterface;
-use PhpBundle\Queue\Domain\Interfaces\JobRepositoryInterface;
-use PhpBundle\Queue\Domain\Interfaces\JobServiceInterface;
-use PhpLab\Core\Domain\Libs\Query;
+use PhpBundle\Queue\Domain\Interfaces\Repositories\JobRepositoryInterface;
+use PhpBundle\Queue\Domain\Interfaces\Services\JobServiceInterface;
+use PhpBundle\Queue\Domain\Queries\NewTaskQuery;
+use PhpLab\Core\Domain\Base\BaseService;
+use PhpLab\Core\Domain\Helpers\EntityHelper;
+use PhpLab\Core\Domain\Helpers\ValidationHelper;
+use PhpLab\Core\Helpers\DiHelper;
 use Psr\Container\ContainerInterface;
 
-class JobService extends BaseCrudService implements JobServiceInterface
+class JobService extends BaseService implements JobServiceInterface
 {
 
     protected $container;
@@ -32,7 +34,7 @@ class JobService extends BaseCrudService implements JobServiceInterface
 
     public function push(JobInterface $job, int $priority = PriorityEnum::NORMAL)
     {
-        $isAvailable = $this->beforeMethod([$this, 'push']);
+        //$isAvailable = $this->beforeMethod([$this, 'push']);
         $jobEntity = new JobEntity;
         $jobEntity->setChannel('email');
         $jobEntity->setJob($job);
@@ -43,23 +45,41 @@ class JobService extends BaseCrudService implements JobServiceInterface
         return $jobEntity;
     }
 
-
-
-    public function runAll(string $channel = null): int
+    public function newTasks(string $channel = null): Collection
     {
-        $query = new Query;
-        if($channel) {
-            $query->where('channel', $channel);
-        }
-        $jobCollection = $this->getRepository()->allForRun($query);
-        foreach ($jobCollection as $jobEntity) {
-            $job = JobHelper::forgeJob($jobEntity, $this->container);
-            $job->run();
-            $jobEntity->setReservedAt();
-            $jobEntity->setDoneAt();
-            $this->getRepository()->update($jobEntity);
-        }
-        return $jobCollection->count();
+        $query = new NewTaskQuery($channel);
+        $jobCollection = $this->getRepository()->all($query);
+        return $jobCollection;
     }
 
+    public function runAll(string $channel = null): TotalEntity
+    {
+        $query = new NewTaskQuery($channel);
+        /** @var Collection | JobEntity[] $jobCollection */
+        $jobCollection = $this->getRepository()->all($query);
+        $totalEntity = new TotalEntity;
+        foreach ($jobCollection as $jobEntity) {
+            $job = $this->getJobInstance($jobEntity, $this->container);
+            $jobEntity->incrementAttempt();
+            try {
+                $job->run();
+                $jobEntity->setCompleted();
+                $totalEntity->incrementSuccess($jobEntity);
+            } catch (\Throwable $e) {
+                $totalEntity->incrementFail($jobEntity);
+            }
+            $this->getRepository()->update($jobEntity);
+        }
+        return $totalEntity;
+    }
+
+    private function getJobInstance(JobEntity $jobEntity, ContainerInterface $container): JobInterface
+    {
+        $jobClass = $jobEntity->getClass();
+        /** @var JobInterface $jobInstance */
+        $jobInstance = DiHelper::make($jobClass, $container);
+        $data = $jobEntity->getJob();
+        EntityHelper::setAttributes($jobInstance, $data);
+        return $jobInstance;
+    }
 }

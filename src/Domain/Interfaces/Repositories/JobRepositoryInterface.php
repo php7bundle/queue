@@ -1,11 +1,11 @@
 <?php
 
-namespace PhpBundle\Queue\Domain\Interfaces;
+namespace PhpBundle\Queue\Domain\Interfaces\Repositories;
 
 use Illuminate\Support\Collection;
-use PhpLab\Core\Domain\Libs\Query;
-use PhpLab\Core\Domain\Interfaces\Repository\CrudRepositoryInterface;
 use PhpBundle\Queue\Domain\Entities\JobEntity;
+use PhpLab\Core\Domain\Interfaces\Repository\CrudRepositoryInterface;
+use PhpLab\Core\Domain\Libs\Query;
 
 interface JobRepositoryInterface extends CrudRepositoryInterface
 {
@@ -15,6 +15,5 @@ interface JobRepositoryInterface extends CrudRepositoryInterface
      * @param Query|null $query
      * @return JobEntity[]
      */
-    public function allForRun(Query $query = null): Collection;
-
+    //public function newTasks(string $channel = null): Collection;
 }
