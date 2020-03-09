@@ -11,7 +11,6 @@ use PhpBundle\Queue\Domain\Repositories\Eloquent\JobRepository;
 use PhpBundle\Queue\Domain\Services\JobService;
 use PhpBundle\Queue\Tests\Libs\Jobs\ExampleJob;
 use PhpLab\Core\Domain\Helpers\EntityHelper;
-use PhpLab\Core\Exceptions\AlreadyExistsException;
 use PhpLab\Test\Base\BaseTest;
 use Psr\Container\ContainerInterface;
 
